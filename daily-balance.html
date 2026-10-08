@@ -1,0 +1,530 @@
+<title>Daily Balance Check</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Hind+Siliguri:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: phone-first single flow; on wide screens the form sits left and the results column stays in view on the right.
+   Night indigo is the accent (the day starts with sleep); the 24-hour strip uses sleep / active / screen / rest colours. */
+:root{
+  --bg:#f3f4f8; --surface:#ffffff; --sunk:#eceef4; --ink:#1a1d2b; --ink-2:#474c60; --muted:#6e7389; --line:#dde0e9;
+  --accent:#3d348b; --accent-ink:#ffffff;
+  --sleep:#4a3aa7; --active:#1baf7a; --screen:#eb6834; --rest:#9a9caa;
+  --good:#0b7a0b; --good-bg:#e3f4e3; --warn:#8a5d00; --warn-bg:#fdf1d6; --bad:#b52f2f; --bad-bg:#fbe3e3;
+  --under:#2a78d6; --normal:#1baf7a; --over:#eda100; --obese:#d4442f;
+  --f-display:"Bricolage Grotesque","Hind Siliguri",ui-sans-serif,system-ui,sans-serif;
+  --f-body:"IBM Plex Sans","Hind Siliguri",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#12131a; --surface:#1b1d27; --sunk:#242734; --ink:#eef0f6; --ink-2:#b7bbcc; --muted:#878ba1; --line:#2d3040;
+  --accent:#9085e9; --accent-ink:#12131a;
+  --sleep:#9085e9; --active:#199e70; --screen:#d95926; --rest:#5d6070;
+  --good:#6fd66f; --good-bg:#183019; --warn:#f0b440; --warn-bg:#33280f; --bad:#f08a8a; --bad-bg:#3a1c1c;
+  --under:#3987e5; --normal:#199e70; --over:#c98500; --obese:#e0507a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12131a; --surface:#1b1d27; --sunk:#242734; --ink:#eef0f6; --ink-2:#b7bbcc; --muted:#878ba1; --line:#2d3040;
+  --accent:#9085e9; --accent-ink:#12131a;
+  --sleep:#9085e9; --active:#199e70; --screen:#d95926; --rest:#5d6070;
+  --good:#6fd66f; --good-bg:#183019; --warn:#f0b440; --warn-bg:#33280f; --bad:#f08a8a; --bad-bg:#3a1c1c;
+  --under:#3987e5; --normal:#199e70; --over:#c98500; --obese:#e0507a; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.55;margin:0}
+html[lang="bn"] body{font-family:"Hind Siliguri",var(--f-body);font-size:16px}
+html[lang="bn"] h1,html[lang="bn"] h2,html[lang="bn"] h3{font-family:"Hind Siliguri",var(--f-display);letter-spacing:0}
+.wrap{max-width:1160px;margin:0 auto;padding-inline:20px;padding-block:20px 60px}
+h1,h2,h3{font-family:var(--f-display);font-weight:700;letter-spacing:-.01em;margin:0;text-wrap:balance}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+html[lang="bn"] .num{font-family:"Hind Siliguri",var(--f-mono);font-weight:600}
+
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--f-display);font-weight:700;font-size:18px}
+html[lang="bn"] .brand{font-family:"Hind Siliguri",sans-serif}
+.brand svg{flex:none}
+.lang{display:flex;border:1px solid var(--line);border-radius:999px;padding:3px;background:var(--surface)}
+.lang button{border:0;background:none;border-radius:999px;padding:4px 12px;cursor:pointer;font-size:13.5px;color:var(--ink-2)}
+.lang button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.hero{padding-block:26px 22px}
+.hero h1{font-size:clamp(28px,4.6vw,46px);line-height:1.05;max-width:20ch}
+.hero p{color:var(--ink-2);max-width:62ch;margin:10px 0 0}
+
+.layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.12fr);gap:26px;align-items:start}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px}
+.sticky{position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px)}
+.example{display:flex;gap:10px;align-items:center;justify-content:space-between;background:var(--sunk);border-radius:10px;padding:8px 12px;font-size:13px;color:var(--ink-2);margin-bottom:12px;flex-wrap:wrap}
+.example button{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:3px 10px;cursor:pointer;font-size:12.5px}
+fieldset{border:0;margin:0;padding:0}
+fieldset+fieldset{margin-top:18px;padding-top:16px;border-top:1px solid var(--line)}
+legend{font-family:var(--f-display);font-weight:700;font-size:16px;padding:0;display:flex;align-items:center;gap:8px}
+html[lang="bn"] legend{font-family:"Hind Siliguri",sans-serif}
+legend .dot{width:10px;height:10px;border-radius:3px;display:inline-block}
+.f{margin-top:12px}
+.f>label,.f>.lab{display:flex;justify-content:space-between;gap:8px;font-size:14px;color:var(--ink-2);margin-bottom:5px}
+.f output{font-family:var(--f-mono);color:var(--ink);font-size:13.5px;white-space:nowrap}
+html[lang="bn"] .f output{font-family:"Hind Siliguri",sans-serif;font-weight:600;font-size:14.5px}
+.hint{font-size:12.5px;color:var(--muted);margin-top:3px}
+input[type=range]{width:100%;accent-color:var(--accent);margin:2px 0}
+.row2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+.inp{display:flex;align-items:center;gap:6px}
+.inp input[type=number],.inp input[type=time]{width:100%;min-width:0;padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:var(--bg);font-family:var(--f-mono);font-size:14px}
+.unit{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;flex:none}
+.unit button{border:0;background:var(--bg);padding:6px 8px;font-size:12.5px;cursor:pointer;color:var(--muted)}
+.unit button[aria-pressed="true"]{background:var(--ink);color:var(--surface)}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chip{border:1px solid var(--line);background:var(--bg);border-radius:999px;padding:5px 11px;font-size:13.5px;cursor:pointer;line-height:1.3}
+.chip:hover{border-color:var(--ink-2)}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.cta{display:none;margin-top:18px;width:100%;border:0;border-radius:10px;padding:12px;background:var(--accent);color:var(--accent-ink);font-weight:600;cursor:pointer}
+
+/* results */
+.res{display:grid;gap:16px}
+.sec h2{font-size:18px}
+.sec .cap{font-size:13px;color:var(--muted);margin:3px 0 0}
+.bmi{display:grid;grid-template-columns:auto minmax(0,1fr);gap:18px;align-items:center}
+.bmi .big{font-family:var(--f-display);font-size:58px;line-height:.9;font-weight:700;letter-spacing:-.02em}
+.bmi .lbl{font-weight:600;font-size:16px}
+.scale{position:relative;margin-top:22px}
+.scale .bar{display:flex;height:10px;gap:2px;border-radius:5px;overflow:hidden}
+.scale .bar i{display:block;height:100%}
+.scale .mk{position:absolute;top:-20px;transform:translateX(-50%);font-family:var(--f-mono);font-size:11.5px;color:var(--ink);white-space:nowrap}
+.scale .mk::after{content:"";position:absolute;left:50%;top:16px;width:2px;height:16px;background:var(--ink);transform:translateX(-50%);border-radius:1px}
+.scale .ticks{position:relative;height:16px;font-family:var(--f-mono);font-size:11px;color:var(--muted)}
+.scale .ticks span{position:absolute;transform:translateX(-50%);top:3px}
+.kv{font-size:13.5px;color:var(--ink-2);margin-top:10px}
+.kv b{color:var(--ink)}
+
+.day .row{display:grid;grid-template-columns:92px minmax(0,1fr);gap:10px;align-items:center;margin-top:8px;font-size:13px;color:var(--ink-2)}
+.day .strip{display:flex;height:30px;gap:2px;border-radius:6px;overflow:hidden}
+.day .strip i{display:flex;align-items:center;justify-content:center;font-style:normal;font-size:12px;color:#fff;overflow:hidden;white-space:nowrap;min-width:0;font-family:var(--f-mono)}
+html[lang="bn"] .day .strip i{font-family:"Hind Siliguri",sans-serif;font-weight:600}
+.day .strip i.rest{color:var(--ink)}
+.leg{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12.5px;color:var(--ink-2);margin-top:8px}
+.sw{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+
+.tgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:10px}
+.tc{border:1px solid var(--line);border-radius:12px;padding:12px 13px;background:var(--bg);display:flex;flex-direction:column;gap:6px;min-width:0}
+.tc .hd{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.tc h3{font-size:15px;display:flex;align-items:center;gap:7px}
+html[lang="bn"] .tc h3{font-family:"Hind Siliguri",sans-serif}
+.tc .aim{font-family:var(--f-display);font-size:22px;font-weight:700;line-height:1.1}
+html[lang="bn"] .tc .aim{font-family:"Hind Siliguri",sans-serif}
+.tc .you{font-size:13px;color:var(--ink-2)}
+.tc .tip{font-size:13px;color:var(--ink-2);border-top:1px dashed var(--line);padding-top:6px;margin-top:auto}
+.meter{height:6px;background:var(--sunk);border-radius:3px;position:relative;overflow:hidden}
+.meter i{position:absolute;left:0;top:0;bottom:0;border-radius:3px}
+.pill{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.pill.good{color:var(--good);background:var(--good-bg)}
+.pill.close{color:var(--warn);background:var(--warn-bg)}
+.pill.needs{color:var(--bad);background:var(--bad-bg)}
+
+.pri{display:grid;gap:7px;margin-top:10px}
+.pri .it{display:grid;grid-template-columns:22px minmax(0,1fr) 110px;gap:10px;align-items:center;font-size:14px}
+.pri .n{font-family:var(--f-mono);color:var(--muted);font-size:12.5px}
+.pri .b{height:8px;background:var(--sunk);border-radius:4px;overflow:hidden}
+.pri .b i{display:block;height:100%;background:var(--accent);border-radius:4px}
+.pri .it.none{color:var(--muted)}
+
+.plan{display:grid;gap:12px;margin-top:10px}
+.pl h3{font-size:15px;margin-bottom:6px}
+html[lang="bn"] .pl h3{font-family:"Hind Siliguri",sans-serif}
+.wk{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.wk label{display:flex;flex-direction:column;gap:4px;border:1px solid var(--line);border-radius:10px;padding:8px 9px;background:var(--bg);font-size:12.5px;color:var(--ink-2);cursor:pointer;min-width:0}
+.wk label .w{display:flex;justify-content:space-between;align-items:center;font-size:11.5px;color:var(--muted);font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+html[lang="bn"] .wk label .w{text-transform:none;letter-spacing:0}
+.wk input{accent-color:var(--good);width:16px;height:16px;margin:0}
+.wk label:has(input:checked){border-color:var(--good);background:var(--good-bg)}
+.prog{font-size:12.5px;color:var(--muted)}
+
+.notes{font-size:13px;color:var(--ink-2)}
+.notes ul{margin:6px 0 0;padding-left:18px}
+.notes li+li{margin-top:4px}
+.src{font-size:12.5px;color:var(--muted);margin-top:28px;padding-top:14px;border-top:1px solid var(--line);max-width:90ch}
+.src ol{margin:6px 0 0;padding-left:18px}
+
+@media (max-width:920px){
+  .layout{grid-template-columns:minmax(0,1fr)}
+  .sticky{position:static}
+  .cta{display:block}
+}
+@media (max-width:560px){
+  .wrap{padding-inline:16px}
+  .tgrid{grid-template-columns:minmax(0,1fr)}
+  .wk{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .bmi .big{font-size:48px}
+  .pri .it{grid-template-columns:22px minmax(0,1fr) 70px}
+}
+</style>
+
+<div class="wrap">
+  <div class="top">
+    <div class="brand"><svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><circle cx="13" cy="13" r="12" fill="var(--sunk)"/><path d="M13 1a12 12 0 0 1 0 24z" fill="var(--sleep)"/><circle cx="13" cy="13" r="5" fill="var(--surface)"/></svg><span data-t="brand"></span></div>
+    <div class="lang" role="group" aria-label="Language"><button id="l-en" data-lang="en" aria-pressed="true">English</button><button id="l-bn" data-lang="bn" aria-pressed="false">বাংলা</button></div>
+  </div>
+  <header class="hero">
+    <h1 data-t="h1"></h1>
+    <p data-t="lede"></p>
+  </header>
+
+  <div class="layout">
+    <form class="card" id="form" autocomplete="off" onsubmit="return false">
+      <div class="example" id="exBanner"><span data-t="example"></span><button type="button" id="reset" data-t="reset"></button></div>
+
+      <fieldset>
+        <legend><span class="dot" style="background:var(--ink)"></span><span data-t="s_you"></span></legend>
+        <div class="row2">
+          <div class="f"><label for="age"><span data-t="age"></span><output id="o-age"></output></label><input type="range" id="age" min="15" max="70" step="1"></div>
+          <div class="f"><span class="lab" data-t="sex"></span><div class="chips" data-k="sex"><button type="button" class="chip" data-x="0" data-t="female"></button><button type="button" class="chip" data-x="1" data-t="male"></button></div></div>
+        </div>
+        <div class="row2">
+          <div class="f"><span class="lab" id="lab-ht"><span data-t="height"></span></span>
+            <div class="inp" id="htBox"></div></div>
+          <div class="f"><label for="wt"><span data-t="weight"></span></label><div class="inp"><input type="number" id="wt" min="25" max="200" step="0.5" inputmode="decimal"><span class="hint" style="margin:0">kg</span></div></div>
+        </div>
+        <div class="row2">
+          <div class="f"><label for="waist"><span data-t="waist"></span></label><div class="inp"><input type="number" id="waist" min="0" max="200" step="0.5" inputmode="decimal" placeholder="—"><div class="unit" data-u="wu"><button type="button" data-x="cm">cm</button><button type="button" data-x="in">in</button></div></div><div class="hint" data-t="waist_h"></div></div>
+          <div class="f"><span class="lab" data-t="fh"></span><div class="chips" data-k="fh"><button type="button" class="chip" data-x="0" data-t="no"></button><button type="button" class="chip" data-x="1" data-t="yes"></button></div></div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend><span class="dot" style="background:var(--sleep)"></span><span data-t="s_sleep"></span></legend>
+        <div class="row2">
+          <div class="f"><label for="wake"><span data-t="wake"></span></label><div class="inp"><input type="time" id="wake" step="900"></div></div>
+          <div class="f"><label for="sleep"><span data-t="sleep"></span><output id="o-sleep"></output></label><input type="range" id="sleep" min="3" max="12" step="0.5"></div>
+        </div>
+        <div class="f"><span class="lab" data-t="sq"></span><div class="chips" data-k="sq"><button type="button" class="chip" data-x="1" data-t="sq1"></button><button type="button" class="chip" data-x="2" data-t="sq2"></button><button type="button" class="chip" data-x="3" data-t="sq3"></button><button type="button" class="chip" data-x="4" data-t="sq4"></button></div></div>
+      </fieldset>
+
+      <fieldset>
+        <legend><span class="dot" style="background:var(--active)"></span><span data-t="s_move"></span></legend>
+        <div class="f"><label for="walk"><span data-t="walk"></span><output id="o-walk"></output></label><input type="range" id="walk" min="0" max="120" step="5"><div class="hint" data-t="walk_h"></div></div>
+        <div class="f"><label for="ex"><span data-t="ex"></span><output id="o-ex"></output></label><input type="range" id="ex" min="0" max="420" step="15"><div class="hint" data-t="ex_h"></div></div>
+      </fieldset>
+
+      <fieldset>
+        <legend><span class="dot" style="background:var(--screen)"></span><span data-t="s_screen"></span></legend>
+        <div class="f"><label for="scr"><span data-t="scr"></span><output id="o-scr"></output></label><input type="range" id="scr" min="0" max="16" step="0.5"></div>
+        <div class="f"><label for="rec"><span data-t="rec"></span><output id="o-rec"></output></label><input type="range" id="rec" min="0" max="16" step="0.5"><div class="hint" data-t="rec_h"></div></div>
+      </fieldset>
+
+      <fieldset>
+        <legend><span class="dot" style="background:var(--over)"></span><span data-t="s_food"></span></legend>
+        <div class="f"><span class="lab" data-t="hc"></span><div class="chips" data-k="hc"><button type="button" class="chip" data-x="1" data-t="freq"></button><button type="button" class="chip" data-x="2" data-t="some"></button><button type="button" class="chip" data-x="3" data-t="rare"></button></div><div class="hint" data-t="hc_h"></div></div>
+        <div class="row2">
+          <div class="f"><label for="veg"><span data-t="veg"></span><output id="o-veg"></output></label><input type="range" id="veg" min="0" max="8" step="1"><div class="hint" data-t="veg_h"></div></div>
+          <div class="f"><label for="water"><span data-t="water"></span><output id="o-water"></output></label><input type="range" id="water" min="0" max="16" step="1"><div class="hint" data-t="water_h"></div></div>
+        </div>
+        <div class="f"><span class="lab" data-t="late"></span><div class="chips" data-k="late"><button type="button" class="chip" data-x="1" data-t="freq"></button><button type="button" class="chip" data-x="2" data-t="some"></button><button type="button" class="chip" data-x="3" data-t="rare"></button></div></div>
+      </fieldset>
+
+      <fieldset>
+        <legend><span class="dot" style="background:var(--rest)"></span><span data-t="s_mind"></span></legend>
+        <div class="f"><span class="lab" data-t="emo"></span><div class="chips" data-k="emo"><button type="button" class="chip" data-x="1" data-t="e1"></button><button type="button" class="chip" data-x="2" data-t="e2"></button><button type="button" class="chip" data-x="3" data-t="e3"></button><button type="button" class="chip" data-x="4" data-t="e4"></button><button type="button" class="chip" data-x="5" data-t="e5"></button></div></div>
+        <div class="f"><span class="lab" data-t="stress"></span><div class="chips" data-k="stress"><button type="button" class="chip" data-x="1" data-t="st1"></button><button type="button" class="chip" data-x="2" data-t="st2"></button><button type="button" class="chip" data-x="3" data-t="st3"></button><button type="button" class="chip" data-x="4" data-t="st4"></button><button type="button" class="chip" data-x="5" data-t="st5"></button></div></div>
+        <div class="f"><span class="lab" data-t="smoke"></span><div class="chips" data-k="smoke"><button type="button" class="chip" data-x="0" data-t="no"></button><button type="button" class="chip" data-x="1" data-t="yes"></button></div></div>
+      </fieldset>
+      <button type="button" class="cta" id="cta" data-t="cta"></button>
+    </form>
+
+    <div class="sticky">
+      <div class="res" id="results">
+        <section class="card sec" id="secW"></section>
+        <section class="card sec day" id="secDay"></section>
+        <section class="card sec" id="secT"></section>
+        <section class="card sec" id="secP"></section>
+        <section class="card sec" id="secPlan"></section>
+        <section class="card sec notes" id="secN"></section>
+      </div>
+    </div>
+  </div>
+  <footer class="src" id="sources"></footer>
+</div>
+
+<script>
+/* ---------- study model (ordered logit, N = 912 Bangladeshi university students) ---------- */
+const MB=[0.480454,0.215507,0.00684,0.679703,0.142092,-0.170558,0.033649,-0.272893,0.305195,-0.223974,-0.214637,0.095451,0.189139,0.238652,0.151434,-0.040018];
+const MP=[4.29767706,0.95336073,0.88057793]; const TH=[MP[0],MP[0]+Math.exp(MP[1]),MP[0]+Math.exp(MP[1])+Math.exp(MP[2])];
+const MEANS={inc:3.644,acad:2.234,purpose:1.706,cook:0.454,hall:0.564};
+const sig=z=>1/(1+Math.exp(-z));
+function pHigh(x){const z=x.reduce((s,v,i)=>s+v*MB[i],0);return 1-sig(TH[1]-z);} // P(overweight or obese)
+
+/* ---------- copy ---------- */
+const T={
+en:{
+ brand:'Daily Balance', h1:'Check your sleep, movement and screen time in two minutes',
+ lede:'Enter a normal day. You get personal targets based on WHO and sleep-medicine guidelines. Findings from a study of 912 Bangladeshi university students show which change is likely to matter most for you.',
+ example:'These are example values. Replace them with your own.', reset:'Start with example',
+ s_you:'About you', age:'Age', sex:'Sex', female:'Female', male:'Male', height:'Height', weight:'Weight', waist:'Waist (optional)', waist_h:'Measure at the navel', fh:'Parent or sibling with obesity?', no:'No', yes:'Yes',
+ s_sleep:'Sleep', wake:'Usual wake-up time', sleep:'Sleep per night', sq:'How well do you sleep?', sq1:'Very well', sq2:'Well', sq3:'Fairly', sq4:'Poorly',
+ s_move:'Movement', walk:'Brisk walking per day', walk_h:'Fast enough that talking is a little harder. Walking to class counts.', ex:'Sport, gym or cycling per week', ex_h:'Total minutes in a usual week',
+ s_screen:'Screens', scr:'Total screen time per day', rec:'Of that, for fun', rec_h:'Social media, videos, games. Not study or work.',
+ s_food:'Food and drink', hc:'High-calorie food', hc_h:'Fried snacks (singara, puri), fast food, biryani, soft drinks', freq:'Often', some:'Sometimes', rare:'Rarely',
+ veg:'Fruit and vegetable servings a day', veg_h:'1 serving ≈ a fist-sized portion', water:'Glasses of water a day', water_h:'1 glass = 250 ml', late:'Eating after 10 PM',
+ s_mind:'Stress and habits', emo:'I eat more when stressed or sad', e1:'Never', e2:'Rarely', e3:'Sometimes', e4:'Often', e5:'Almost always',
+ stress:'Stress level these days', st1:'Very low', st2:'Low', st3:'Moderate', st4:'High', st5:'Very high', smoke:'Do you smoke or use tobacco?',
+ cta:'See my targets',
+ // results
+ w_title:'Weight snapshot', w_cap:'Body mass index using the WHO cut-offs for Asian populations.',
+ bmi_u:'Underweight', bmi_n:'Healthy range', bmi_o:'Overweight', bmi_ob:'Obese',
+ hr:'Healthy weight for your height', waist_ok:'Waist is within the healthy range.', waist_hi:'Waist is above {c} cm, which raises health risk even at a normal BMI.',
+ bmi_need:'Enter height and weight to see your BMI.',
+ d_title:'Your 24 hours', d_cap:'How your day is spent now, and a balanced day for your age.', d_you:'Now', d_aim:'Balanced', d_sleep:'Sleep', d_act:'Active', d_scr:'Fun screens', d_rest:'Study, work, other',
+ t_title:'Your daily targets', t_cap:'Based on international guidelines. Green means on track.',
+ good:'On track', close:'Almost', needs:'Needs work',
+ t_sleep:'Sleep', t_bed:'Bed by {t}', t_sleep_you:'You: {h} a night · aim {a}', t_sleep_tip:'Keep the same wake-up time every day, including weekends.', t_sleep_long:'Regularly sleeping more than {h} and still tired? Talk to a doctor.',
+ t_move:'Movement', t_move_aim:'{m} min brisk walking a day', t_move_you:'You: {w} min a week · aim {a}', t_move_tip:'Add muscle work (push-ups, squats, stairs) on 2 days a week.', t_move_teen:'60 minutes of activity every day',
+ t_scr:'Screens for fun', t_scr_aim:'Under 2 hours a day', t_scr_you:'You: {h} for fun, {t} in total', t_scr_tip:'No adult limit is official. 2 hours is the benchmark most studies use. Stand up every 30 minutes and stop screens 1 hour before bed.',
+ t_water:'Water', t_water_aim:'{g} glasses a day', t_water_you:'You: {n} glasses', t_water_tip:'Drink more in hot weather or after exercise. Pale yellow urine is a good sign.',
+ t_food:'Food', t_food_aim:'5+ fruit and vegetable servings', t_food_you:'You: {v} servings · high-calorie food {h}', t_food_tip:'Keep fried and fast food to once or twice a week. Choose water over soft drinks.',
+ t_meal:'Last meal', t_meal_aim:'Finish eating by {t}', t_meal_you:'Eating after 10 PM: {f}', t_meal_tip:'A 2–3 hour gap before bed helps sleep and digestion.',
+ t_emo:'Stress eating', t_emo_aim:'Notice the urge before you eat', t_emo_you:'You eat more when stressed: {f}', t_emo_tip:'Wait 10 minutes, drink water, or take a short walk. If stress stays high, talk to someone you trust or a counsellor.',
+ t_smoke:'Tobacco', t_smoke_aim:'Plan to quit', t_smoke_you:'You use tobacco', t_smoke_tip:'Pick a quit date and tell a friend. Doctors and health centres can help with quitting.',
+ t_stress:'Stress', t_stress_aim:'Make time to recover', t_stress_you:'Stress level: {f}', t_stress_tip:'Sleep, movement and talking to people all reduce stress. Your university counselling centre is free to use.',
+ p_title:'What matters most for you', p_cap:'In the study of 912 students, these changes were linked to the biggest drop in the chance of being overweight or obese for someone with answers like yours.',
+ p_pts:'−{p} points', p_none:'Already at a healthy level', p_teen:'The study covered ages 18–35. Use this ranking only as a rough guide.',
+ lv_sleep:'Sleep 7–8 hours', lv_sq:'Sleep better', lv_emo:'Less stress eating', lv_hc:'Less high-calorie food', lv_dev:'Less screen time',
+ pl_title:'Your 4-week plan', pl_cap:'Small steps for your top three priorities. Tick each step when you have done it for a week.', pl_wk:'Week {n}', pl_done:'{n} of {m} steps done', pl_ok:'You are on track everywhere. Keep your routine and check again next month.',
+ n_title:'Good to know', n1:'This is a self-check, not a diagnosis. It uses averages and cannot replace a doctor.', n2:'See a doctor if your BMI is under 17 or 27.5 or more, if you lose weight without trying, or if you are often very tired.', n3:'Avoid crash diets. Steady changes to sleep, movement and meals last longer.', n4:'Your answers stay in this browser. Nothing is sent anywhere.',
+ src_t:'Sources',
+},
+bn:{
+ brand:'দৈনিক ভারসাম্য', h1:'দুই মিনিটে যাচাই করুন আপনার ঘুম, চলাফেরা আর স্ক্রিন টাইম',
+ lede:'আপনার একটি সাধারণ দিনের তথ্য দিন। বিশ্ব স্বাস্থ্য সংস্থা (WHO) ও ঘুম-বিশেষজ্ঞদের নির্দেশনা অনুযায়ী আপনি ব্যক্তিগত লক্ষ্য পাবেন। বাংলাদেশের ৯১২ জন বিশ্ববিদ্যালয় শিক্ষার্থীর ওপর করা গবেষণা দেখায় কোন পরিবর্তন আপনার জন্য সবচেয়ে জরুরি।',
+ example:'এগুলো উদাহরণ। আপনার নিজের তথ্য দিন।', reset:'উদাহরণ দিয়ে শুরু করুন',
+ s_you:'আপনার সম্পর্কে', age:'বয়স', sex:'লিঙ্গ', female:'নারী', male:'পুরুষ', height:'উচ্চতা', weight:'ওজন', waist:'কোমরের মাপ (ঐচ্ছিক)', waist_h:'নাভি বরাবর মাপুন', fh:'বাবা-মা বা ভাইবোনের কারও স্থূলতা আছে?', no:'না', yes:'হ্যাঁ',
+ s_sleep:'ঘুম', wake:'সাধারণত কখন ঘুম থেকে ওঠেন', sleep:'রাতে কত ঘণ্টা ঘুমান', sq:'ঘুম কেমন হয়?', sq1:'খুব ভালো', sq2:'ভালো', sq3:'মোটামুটি', sq4:'খারাপ',
+ s_move:'চলাফেরা', walk:'প্রতিদিন দ্রুত হাঁটা', walk_h:'এমন গতিতে যাতে কথা বলতে একটু কষ্ট হয়। ক্লাসে হেঁটে যাওয়াও ধরা হবে।', ex:'সপ্তাহে খেলাধুলা, জিম বা সাইকেল চালানো', ex_h:'একটি সাধারণ সপ্তাহে মোট মিনিট',
+ s_screen:'স্ক্রিন', scr:'প্রতিদিন মোট স্ক্রিন টাইম', rec:'এর মধ্যে বিনোদনে', rec_h:'সোশ্যাল মিডিয়া, ভিডিও, গেম। পড়াশোনা বা কাজ বাদে।',
+ s_food:'খাবার ও পানীয়', hc:'উচ্চ-ক্যালরির খাবার', hc_h:'ভাজাপোড়া (সিঙ্গারা, পুরি), ফাস্ট ফুড, বিরিয়ানি, কোমল পানীয়', freq:'প্রায়ই', some:'মাঝে মাঝে', rare:'কদাচিৎ',
+ veg:'দিনে ফল ও সবজির পরিবেশন', veg_h:'১ পরিবেশন ≈ এক মুঠো পরিমাণ', water:'দিনে কত গ্লাস পানি', water_h:'১ গ্লাস = ২৫০ মিলি', late:'রাত ১০টার পরে খাওয়া',
+ s_mind:'মানসিক চাপ ও অভ্যাস', emo:'মন খারাপ বা চাপে থাকলে বেশি খাই', e1:'কখনো না', e2:'কদাচিৎ', e3:'মাঝে মাঝে', e4:'প্রায়ই', e5:'প্রায় সবসময়',
+ stress:'এখনকার মানসিক চাপ', st1:'খুব কম', st2:'কম', st3:'মাঝারি', st4:'বেশি', st5:'খুব বেশি', smoke:'ধূমপান বা তামাক ব্যবহার করেন?',
+ cta:'আমার লক্ষ্য দেখুন',
+ w_title:'ওজনের অবস্থা', w_cap:'এশীয়দের জন্য WHO-এর মানদণ্ডে বডি মাস ইনডেক্স (BMI)।',
+ bmi_u:'কম ওজন', bmi_n:'স্বাস্থ্যকর', bmi_o:'অতিরিক্ত ওজন', bmi_ob:'স্থূলতা',
+ hr:'আপনার উচ্চতায় স্বাস্থ্যকর ওজন', waist_ok:'কোমরের মাপ স্বাস্থ্যকর সীমার মধ্যে।', waist_hi:'কোমরের মাপ {c} সেমির বেশি। BMI স্বাভাবিক হলেও এতে স্বাস্থ্যঝুঁকি বাড়ে।',
+ bmi_need:'BMI দেখতে উচ্চতা ও ওজন দিন।',
+ d_title:'আপনার ২৪ ঘণ্টা', d_cap:'এখন আপনার দিন কীভাবে কাটে, আর আপনার বয়সে একটি ভারসাম্যপূর্ণ দিন।', d_you:'এখন', d_aim:'ভারসাম্য', d_sleep:'ঘুম', d_act:'সক্রিয়', d_scr:'বিনোদনে স্ক্রিন', d_rest:'পড়া, কাজ, অন্যান্য',
+ t_title:'আপনার দৈনিক লক্ষ্য', t_cap:'আন্তর্জাতিক নির্দেশনার ভিত্তিতে। সবুজ মানে ঠিক পথে আছেন।',
+ good:'ঠিক আছে', close:'প্রায় ঠিক', needs:'উন্নতি দরকার',
+ t_sleep:'ঘুম', t_bed:'{t}-এর মধ্যে বিছানায়', t_sleep_you:'আপনি: রাতে {h} · লক্ষ্য {a}', t_sleep_tip:'ছুটির দিনসহ প্রতিদিন একই সময়ে ঘুম থেকে উঠুন।', t_sleep_long:'নিয়মিত {h}-এর বেশি ঘুমিয়েও ক্লান্ত লাগলে ডাক্তারের সঙ্গে কথা বলুন।',
+ t_move:'চলাফেরা', t_move_aim:'দিনে {m} মিনিট দ্রুত হাঁটা', t_move_you:'আপনি: সপ্তাহে {w} মিনিট · লক্ষ্য {a}', t_move_tip:'সপ্তাহে ২ দিন পেশির ব্যায়াম করুন (পুশ-আপ, স্কোয়াট, সিঁড়ি)।', t_move_teen:'প্রতিদিন ৬০ মিনিট সক্রিয় থাকা',
+ t_scr:'বিনোদনে স্ক্রিন', t_scr_aim:'দিনে ২ ঘণ্টার কম', t_scr_you:'আপনি: বিনোদনে {h}, মোট {t}', t_scr_tip:'প্রাপ্তবয়স্কদের জন্য সরকারি সীমা নেই। বেশিরভাগ গবেষণা ২ ঘণ্টাকে মানদণ্ড ধরে। প্রতি ৩০ মিনিটে উঠে দাঁড়ান, ঘুমের ১ ঘণ্টা আগে স্ক্রিন বন্ধ করুন।',
+ t_water:'পানি', t_water_aim:'দিনে {g} গ্লাস', t_water_you:'আপনি: {n} গ্লাস', t_water_tip:'গরমে বা ব্যায়ামের পরে বেশি পান করুন। হালকা হলুদ প্রস্রাব ভালো লক্ষণ।',
+ t_food:'খাবার', t_food_aim:'দিনে ৫+ পরিবেশন ফল ও সবজি', t_food_you:'আপনি: {v} পরিবেশন · উচ্চ-ক্যালরির খাবার {h}', t_food_tip:'ভাজাপোড়া ও ফাস্ট ফুড সপ্তাহে এক-দুইবারের বেশি নয়। কোমল পানীয়র বদলে পানি।',
+ t_meal:'শেষ খাবার', t_meal_aim:'{t}-এর মধ্যে খাওয়া শেষ', t_meal_you:'রাত ১০টার পরে খাওয়া: {f}', t_meal_tip:'ঘুমের ২–৩ ঘণ্টা আগে খাওয়া শেষ করলে ঘুম ও হজম ভালো হয়।',
+ t_emo:'চাপে খাওয়া', t_emo_aim:'খাওয়ার আগে তাড়নাটা লক্ষ করুন', t_emo_you:'চাপে বেশি খান: {f}', t_emo_tip:'১০ মিনিট অপেক্ষা করুন, পানি খান বা একটু হেঁটে আসুন। চাপ না কমলে বিশ্বস্ত কারও সঙ্গে বা কাউন্সেলরের সঙ্গে কথা বলুন।',
+ t_smoke:'তামাক', t_smoke_aim:'ছাড়ার পরিকল্পনা করুন', t_smoke_you:'আপনি তামাক ব্যবহার করেন', t_smoke_tip:'একটি তারিখ ঠিক করুন, বন্ধুকে জানান। ডাক্তার ও স্বাস্থ্যকেন্দ্র তামাক ছাড়তে সাহায্য করতে পারে।',
+ t_stress:'মানসিক চাপ', t_stress_aim:'বিশ্রামের সময় রাখুন', t_stress_you:'মানসিক চাপ: {f}', t_stress_tip:'ঘুম, চলাফেরা আর মানুষের সঙ্গে কথা বলা চাপ কমায়। বিশ্ববিদ্যালয়ের কাউন্সেলিং সেন্টার বিনামূল্যে ব্যবহার করা যায়।',
+ p_title:'আপনার জন্য সবচেয়ে জরুরি', p_cap:'৯১২ শিক্ষার্থীর গবেষণায়, আপনার মতো উত্তরদাতার ক্ষেত্রে এই পরিবর্তনগুলোর সঙ্গে অতিরিক্ত ওজন বা স্থূলতার সম্ভাবনা সবচেয়ে বেশি কমেছে।',
+ p_pts:'−{p} পয়েন্ট', p_none:'ইতিমধ্যে স্বাস্থ্যকর পর্যায়ে', p_teen:'গবেষণাটি ১৮–৩৫ বছর বয়সীদের ওপর। এই ক্রম শুধু মোটামুটি ধারণা হিসেবে নিন।',
+ lv_sleep:'৭–৮ ঘণ্টা ঘুম', lv_sq:'ভালো ঘুম', lv_emo:'চাপে কম খাওয়া', lv_hc:'উচ্চ-ক্যালরির খাবার কমানো', lv_dev:'স্ক্রিন টাইম কমানো',
+ pl_title:'আপনার ৪ সপ্তাহের পরিকল্পনা', pl_cap:'প্রধান তিনটি অগ্রাধিকারের জন্য ছোট ছোট ধাপ। এক সপ্তাহ মেনে চললে টিক দিন।', pl_wk:'সপ্তাহ {n}', pl_done:'{m}টির মধ্যে {n}টি ধাপ সম্পন্ন', pl_ok:'সব দিকেই আপনি ঠিক পথে আছেন। অভ্যাস ধরে রাখুন, পরের মাসে আবার যাচাই করুন।',
+ n_title:'জেনে রাখুন', n1:'এটি নিজে যাচাইয়ের টুল, রোগনির্ণয় নয়। এটি গড় হিসাব ব্যবহার করে, ডাক্তারের বিকল্প নয়।', n2:'BMI ১৭-এর কম বা ২৭.৫ বা বেশি হলে, চেষ্টা ছাড়াই ওজন কমলে, বা প্রায়ই খুব ক্লান্ত লাগলে ডাক্তার দেখান।', n3:'হঠাৎ কড়া ডায়েট এড়িয়ে চলুন। ঘুম, চলাফেরা ও খাবারে ধীরে ধীরে পরিবর্তন বেশি টেকে।', n4:'আপনার তথ্য শুধু এই ব্রাউজারেই থাকে, কোথাও পাঠানো হয় না।',
+ src_t:'তথ্যসূত্র',
+}};
+
+const PLANS={
+ sleep:{en:['Wake at {w} every day, weekends too.','Go to bed 15 minutes earlier. Charge your phone out of reach.','Another 15 minutes earlier. No tea or coffee after 4 PM.','Hold bedtime at {b}. Spend 10 calm minutes before lights off.'],
+        bn:['ছুটির দিনসহ প্রতিদিন {w}-এ উঠুন।','১৫ মিনিট আগে বিছানায় যান। ফোন হাতের নাগালের বাইরে চার্জ দিন।','আরও ১৫ মিনিট আগে। বিকাল ৪টার পরে চা-কফি নয়।','{b}-এ ঘুমানো ধরে রাখুন। আলো নেভানোর আগে ১০ মিনিট শান্ত সময়।']},
+ sq:{en:['Make the room dark and quiet. Try an eye mask.','Screens off 1 hour before bed.','Get daylight within an hour of waking.','Keep naps under 20 minutes and before 3 PM.'],
+     bn:['ঘর অন্ধকার ও নিরিবিলি রাখুন। চোখের মাস্ক চেষ্টা করুন।','ঘুমের ১ ঘণ্টা আগে স্ক্রিন বন্ধ।','ঘুম থেকে ওঠার এক ঘণ্টার মধ্যে দিনের আলোয় যান।','দিনের ঘুম ২০ মিনিটের কম, বিকাল ৩টার আগে।']},
+ move:{en:['Walk 10 minutes after two meals each day.','Make one walk a brisk 20 minutes.','Reach {m} minutes of brisk walking a day.','Add 2 short strength sessions: push-ups, squats, stairs.'],
+       bn:['প্রতিদিন দুই বেলা খাওয়ার পরে ১০ মিনিট হাঁটুন।','একবার ২০ মিনিট দ্রুত হাঁটুন।','দিনে {m} মিনিট দ্রুত হাঁটায় পৌঁছান।','সপ্তাহে ২ দিন পেশির ব্যায়াম: পুশ-আপ, স্কোয়াট, সিঁড়ি।']},
+ screen:{en:['Check your phone\'s screen-time report and set one app limit.','No screens during meals.','Stand up and move after every 30 minutes on a screen.','Keep fun screen time under 2 hours. Phone out of bed.'],
+         bn:['ফোনের স্ক্রিন-টাইম রিপোর্ট দেখুন, একটি অ্যাপে সীমা দিন।','খাওয়ার সময় স্ক্রিন নয়।','স্ক্রিনে প্রতি ৩০ মিনিট পরে উঠে একটু হাঁটুন।','বিনোদনে স্ক্রিন ২ ঘণ্টার কম। বিছানায় ফোন নয়।']},
+ food:{en:['Swap one fried snack a day for fruit, chola or muri.','Add a vegetable to lunch and dinner.','Replace soft drinks with water or unsweetened lemon water.','Keep fast food and biryani to once a week.'],
+       bn:['দিনে একটি ভাজা নাশতার বদলে ফল, ছোলা বা মুড়ি।','দুপুর ও রাতের খাবারে একটি সবজি যোগ করুন।','কোমল পানীয়র বদলে পানি বা চিনি ছাড়া লেবু-পানি।','ফাস্ট ফুড ও বিরিয়ানি সপ্তাহে একবার।']},
+ water:{en:['Keep a 1-litre bottle with you and refill it once.','Drink a glass with every meal.','Drink a glass right after waking.','Reach {g} glasses a day.'],
+        bn:['সঙ্গে ১ লিটারের বোতল রাখুন, একবার ভরে নিন।','প্রতি বেলা খাওয়ার সঙ্গে এক গ্লাস।','ঘুম থেকে উঠেই এক গ্লাস।','দিনে {g} গ্লাসে পৌঁছান।']},
+ late:{en:['Close the kitchen at {t}.','Eat dinner at the same time each night.','If hungry late, have milk or fruit.','Keep the kitchen closed 5 nights a week.'],
+       bn:['{t}-এ খাওয়া শেষ।','প্রতিদিন একই সময়ে রাতের খাবার খান।','রাতে ক্ষুধা লাগলে দুধ বা ফল।','সপ্তাহে ৫ রাত এই নিয়ম মানুন।']},
+ emo:{en:['When a craving hits, wait 10 minutes and name the feeling.','Note what you snacked on during stressful moments.','Swap one stress snack for a walk or a call to a friend.','If stress feels heavy, visit your campus counselling centre.'],
+      bn:['খাওয়ার তাড়না এলে ১০ মিনিট অপেক্ষা করুন, অনুভূতিটা চিনুন।','চাপের সময় কী খেলেন তা লিখে রাখুন।','একবারের নাশতার বদলে হাঁটুন বা বন্ধুকে ফোন দিন।','চাপ বেশি লাগলে কাউন্সেলিং সেন্টারে যান।']},
+};
+const PLAN_NAME={en:{sleep:'Sleep longer',sq:'Sleep better',move:'Move more',screen:'Less fun screen time',food:'Better food',water:'Drink more water',late:'Earlier last meal',emo:'Less stress eating'},
+ bn:{sleep:'বেশি ঘুম',sq:'ভালো ঘুম',move:'বেশি চলাফেরা',screen:'বিনোদনে স্ক্রিন কমানো',food:'ভালো খাবার',water:'বেশি পানি',late:'আগে রাতের খাবার',emo:'চাপে কম খাওয়া'}};
+
+/* ---------- helpers ---------- */
+let LANG='en';
+const bnDigits=s=>String(s).replace(/\d/g,d=>'০১২৩৪৫৬৭৮৯'[d]);
+const N=x=>LANG==='bn'?bnDigits(x):String(x);
+const t=(k,v={})=>{let s=(T[LANG][k]??T.en[k]??k);for(const [a,b] of Object.entries(v))s=s.split('{'+a+'}').join(b);return s;};
+const fmtH=h=>{const hh=Math.floor(h),mm=Math.round((h-hh)*60);return LANG==='bn'?bnDigits(hh)+' ঘণ্টা'+(mm?' '+bnDigits(mm)+' মি':''):hh+' h'+(mm?' '+mm+' m':'');};
+function fmtClock(mins){mins=((Math.round(mins)%1440)+1440)%1440;const h=Math.floor(mins/60),m=mins%60;const mm=String(m).padStart(2,'0');
+  if(LANG==='bn'){const p=h>=4&&h<12?'সকাল':h<15&&h>=12?'দুপুর':h>=15&&h<18?'বিকাল':h>=18&&h<20?'সন্ধ্যা':'রাত';const h12=h%12||12;return p+' '+bnDigits(h12+':'+mm);}
+  const h12=h%12||12;return h12+':'+mm+' '+(h<12?'AM':'PM');}
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+const statusPill=s=>{const ic={good:'<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 6.2l2.3 2.3 4.7-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',close:'<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="4.2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M6 1.8a4.2 4.2 0 0 1 0 8.4z" fill="currentColor"/></svg>',needs:'<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M6 2v5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="6" cy="9.6" r="1.1" fill="currentColor"/></svg>'}[s];return `<span class="pill ${s}">${ic}${t(s)}</span>`;};
+
+/* ---------- state ---------- */
+const EXAMPLE={age:21,sex:1,htU:'cm',ht:168,ft:5,inch:6,wt:66,waist:'',wu:'cm',fh:0,wake:'07:00',sleep:6,sq:3,walk:15,ex:30,scr:7,rec:4,hc:2,veg:2,water:6,late:2,emo:3,stress:3,smoke:0};
+let S={...EXAMPLE}, isExample=true;
+try{const s=JSON.parse(localStorage.getItem('db-state')||'null');if(s){S={...EXAMPLE,...s.S};isExample=!!s.ex;} const l=localStorage.getItem('db-lang');if(l)LANG=l;}catch(e){}
+let DONE={}; try{DONE=JSON.parse(localStorage.getItem('db-done')||'{}');}catch(e){}
+const save=()=>{try{localStorage.setItem('db-state',JSON.stringify({S,ex:isExample}));localStorage.setItem('db-done',JSON.stringify(DONE));localStorage.setItem('db-lang',LANG);}catch(e){}};
+
+/* ---------- form wiring ---------- */
+const $=id=>document.getElementById(id);
+function heightBox(){ $('htBox').innerHTML = (S.htU==='cm'
+  ? `<input type="number" id="ht" min="100" max="230" step="0.5" inputmode="decimal" aria-labelledby="lab-ht" value="${S.ht}"><span class="hint" style="margin:0">cm</span>`
+  : `<input type="number" id="ft" min="3" max="7" step="1" inputmode="numeric" aria-label="feet" value="${S.ft}"><span class="hint" style="margin:0">ft</span><input type="number" id="inch" min="0" max="11.5" step="0.5" inputmode="decimal" aria-label="inches" value="${S.inch}"><span class="hint" style="margin:0">in</span>`)
+  + `<div class="unit" data-u="htU"><button type="button" data-x="cm" aria-pressed="${S.htU==='cm'}">cm</button><button type="button" data-x="ft" aria-pressed="${S.htU==='ft'}">ft</button></div>`; }
+function syncForm(){
+  ['age','sleep','walk','ex','scr','rec','veg','water'].forEach(k=>{$(k).value=S[k];});
+  $('wt').value=S.wt; $('waist').value=S.waist; $('wake').value=S.wake;
+  document.querySelectorAll('.chips[data-k]').forEach(g=>g.querySelectorAll('.chip').forEach(b=>b.setAttribute('aria-pressed',String(+S[g.dataset.k]===+b.dataset.x))));
+  document.querySelectorAll('.unit[data-u="wu"] button').forEach(b=>b.setAttribute('aria-pressed',String(S.wu===b.dataset.x)));
+  heightBox(); outputs(); $('exBanner').hidden=!isExample;
+}
+function outputs(){
+  $('o-age').textContent=N(S.age); $('o-sleep').textContent=fmtH(+S.sleep); $('o-walk').textContent=N(S.walk)+(LANG==='bn'?' মিনিট':' min');
+  $('o-ex').textContent=N(S.ex)+(LANG==='bn'?' মিনিট':' min'); $('o-scr').textContent=fmtH(+S.scr); $('o-rec').textContent=fmtH(+S.rec);
+  $('o-veg').textContent=N(S.veg); $('o-water').textContent=N(S.water);
+}
+const form=$('form');
+form.addEventListener('input',e=>{const id=e.target.id; if(!id)return; let v=e.target.value;
+  if(['age','sleep','walk','ex','scr','rec','veg','water'].includes(id)) v=+v;
+  if(id==='ht'||id==='ft'||id==='inch'||id==='wt') v=v===''?'':+v;
+  S[id]=v; if(id==='scr'&&S.rec>S.scr){S.rec=S.scr;$('rec').value=S.rec;} if(id==='rec'&&S.rec>S.scr){S.scr=S.rec;$('scr').value=S.scr;}
+  touched(); outputs(); render();});
+form.addEventListener('click',e=>{const c=e.target.closest('.chip');const u=e.target.closest('.unit button');
+  if(c){const k=c.closest('.chips').dataset.k;S[k]=+c.dataset.x;c.closest('.chips').querySelectorAll('.chip').forEach(b=>b.setAttribute('aria-pressed',String(b===c)));touched();render();}
+  if(u){const k=u.closest('.unit').dataset.u;const x=u.dataset.x;
+    if(k==='htU'&&x!==S.htU){const cm=heightCm(); if(x==='ft'&&cm){const tin=cm/2.54;S.ft=Math.floor(tin/12);S.inch=Math.round((tin-S.ft*12)*2)/2;} if(x==='cm'&&cm)S.ht=Math.round(cm);S.htU=x;heightBox();}
+    if(k==='wu'&&x!==S.wu){if(S.waist!==''&&S.waist!=null){S.waist=Math.round((x==='in'?S.waist/2.54:S.waist*2.54)*2)/2;$('waist').value=S.waist;}S.wu=x;u.closest('.unit').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b===u)));}
+    render();}
+});
+$('reset').addEventListener('click',()=>{S={...EXAMPLE};isExample=true;syncForm();render();});
+$('cta').addEventListener('click',()=>$('results').scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'}));
+function touched(){ if(isExample){isExample=false;$('exBanner').hidden=true;} }
+function heightCm(){ if(S.htU==='cm') return +S.ht||0; const f=+S.ft||0,i=+S.inch||0; return (f*12+i)*2.54; }
+
+/* ---------- computation ---------- */
+function compute(){
+  const age=+S.age, teen=age<18, older=age>=65;
+  const sleepLo=teen?8:7, sleepHi=teen?10:older?8:9, sleepAim=teen?9:8;
+  const [wh,wm]=(S.wake||'07:00').split(':').map(Number); const wakeMin=wh*60+wm;
+  const bedMin=wakeMin-sleepAim*60-15, lastMeal=bedMin-150;
+  const hcm=heightCm(), wt=+S.wt; const bmi=hcm>0&&wt>0? wt/((hcm/100)**2):null;
+  const waistCm = S.waist===''||S.waist==null? null : (S.wu==='in'? +S.waist*2.54 : +S.waist);
+  const actWeek=S.walk*7+S.ex;
+  const walkAim = teen ? 60 : clamp(Math.ceil(Math.max(150-S.ex,0)/7/5)*5,0,60) || 0;
+  const walkAimShow = teen?60:Math.max(walkAim,30);
+  const waterAim = S.sex===1?10:8;
+  const st={};
+  st.sleep = S.sleep>=sleepLo&&S.sleep<=sleepHi?'good': (S.sleep>=sleepLo-0.5&&S.sleep<=sleepHi+1)?'close':'needs';
+  if(S.sq>=3 && st.sleep==='good') st.sleep='close';
+  st.move = teen ? (S.walk+S.ex/7>=60?'good':S.walk+S.ex/7>=30?'close':'needs') : (actWeek>=150?'good':actWeek>=75?'close':'needs');
+  st.screen = S.rec<=2?'good':S.rec<=3?'close':'needs';
+  st.water = S.water>=waterAim?'good':S.water>=waterAim-2?'close':'needs';
+  st.food = (S.veg>=5&&S.hc===3)?'good':(S.veg>=5||S.hc===3||(S.veg>=3&&S.hc===2))?'close':'needs';
+  st.late = S.late===3?'good':S.late===2?'close':'needs';
+  st.emo = S.emo<=2?'good':S.emo===3?'close':'needs';
+  // study model
+  const sleepBand=s=>s<6?1:s<7?2:s<=8?3:4, devBand=h=>h<2?1:h<5?2:h<=7?3:4, vegBand=v=>v>=5?1:v>=2?2:3, exBand=m=>m<=0?1:m<=90?2:m<=210?3:4;
+  const x0={g:S.sex,age:clamp(age,18,35),fh:S.fh,sd:sleepBand(S.sleep),sq:S.sq,hc:S.hc,veg:vegBand(S.veg),late:S.late,emo:S.emo,dev:devBand(S.scr),ex:exBand(S.ex)};
+  const vec=o=>[o.g,o.age,MEANS.inc,o.fh,MEANS.acad,MEANS.purpose,MEANS.cook,o.sd,o.sq,MEANS.hall,o.hc,o.veg,o.late,o.emo,o.dev,o.ex];
+  const p0=pHigh(vec(x0));
+  const levers=[
+    {k:'lv_sleep',plan:'sleep',can:x0.sd<3,f:o=>({...o,sd:3})},
+    {k:'lv_sq',plan:'sq',can:x0.sq>1,f:o=>({...o,sq:Math.max(1,o.sq-1)})},
+    {k:'lv_emo',plan:'emo',can:x0.emo>1,f:o=>({...o,emo:Math.max(1,o.emo-1)})},
+    {k:'lv_hc',plan:'food',can:x0.hc<3,f:o=>({...o,hc:3})},
+    {k:'lv_dev',plan:'screen',can:x0.dev>2,f:o=>({...o,dev:2})},
+  ].map(L=>({...L,d:L.can?(p0-pHigh(vec(L.f(x0))))*100:0})).sort((a,b)=>b.d-a.d);
+  // priorities for plan
+  const sev={good:0,close:1,needs:2};
+  const gain=Object.fromEntries(levers.map(l=>[l.plan,l.d]));
+  const cand=[
+    {k:'sleep',s:S.sleep<sleepLo?st.sleep:'good',g:gain.sleep||0},
+    {k:'sq',s:S.sq>=3?(S.sq===4?'needs':'close'):'good',g:gain.sq||0},
+    {k:'move',s:st.move,g:3},
+    {k:'screen',s:st.screen,g:Math.max(gain.screen||0,1.5)},
+    {k:'food',s:st.food,g:Math.max(gain.food||0,2)},
+    {k:'emo',s:st.emo,g:gain.emo||0},
+    {k:'late',s:st.late,g:1},
+    {k:'water',s:st.water,g:0.5},
+  ].filter(c=>c.s!=='good').map(c=>({...c,score:sev[c.s]*10+c.g})).sort((a,b)=>b.score-a.score).slice(0,3);
+  return {age,teen,older,sleepLo,sleepHi,sleepAim,wakeMin,bedMin,lastMeal,bmi,hcm,waistCm,actWeek,walkAimShow,waterAim,st,levers,cand};
+}
+
+/* ---------- render ---------- */
+function render(){
+  const R=compute(); save();
+  // weight
+  const W=$('secW');
+  if(!R.bmi){W.innerHTML=`<h2>${t('w_title')}</h2><p class="cap">${t('bmi_need')}</p>`;}
+  else{
+    const b=R.bmi, cat=b<18.5?['bmi_u','under']:b<23?['bmi_n','normal']:b<27.5?['bmi_o','over']:['bmi_ob','obese'];
+    const lo=15,hi=35,pos=v=>(clamp(v,lo,hi)-lo)/(hi-lo)*100;
+    const hm=R.hcm/100, wlo=(18.5*hm*hm).toFixed(0), whi=(22.9*hm*hm).toFixed(0);
+    const wc=S.sex===1?90:80;
+    const waistTxt = R.waistCm? (R.waistCm>=wc? `<div class="kv">${statusPill('needs')} ${t('waist_hi',{c:N(wc)})}</div>` : `<div class="kv">${statusPill('good')} ${t('waist_ok')}</div>`):'';
+    W.innerHTML=`<h2>${t('w_title')}</h2><p class="cap">${t('w_cap')}</p>
+    <div class="bmi" style="margin-top:12px"><div class="big num">${N(b.toFixed(1))}</div><div><div class="lbl" style="color:var(--ink)"><span class="sw" style="background:var(--${cat[1]})"></span>${t(cat[0])}</div><div class="kv">${t('hr')}: <b class="num">${N(wlo)}–${N(whi)} kg</b></div></div></div>
+    <div class="scale"><div class="mk" style="left:${pos(b)}%">BMI ${N(b.toFixed(1))}</div>
+      <div class="bar"><i style="width:${pos(18.5)}%;background:var(--under)"></i><i style="width:${pos(23)-pos(18.5)}%;background:var(--normal)"></i><i style="width:${pos(27.5)-pos(23)}%;background:var(--over)"></i><i style="flex:1;background:var(--obese)"></i></div>
+      <div class="ticks">${[18.5,23,27.5].map(v=>`<span style="left:${pos(v)}%">${N(v)}</span>`).join('')}</div></div>
+    <div class="leg">${[['bmi_u','under'],['bmi_n','normal'],['bmi_o','over'],['bmi_ob','obese']].map(c=>`<span><span class="sw" style="background:var(--${c[1]})"></span>${t(c[0])}</span>`).join('')}</div>${waistTxt}`;
+  }
+  // 24h
+  const act=Math.min(S.walk+S.ex/7,240)/60, you=[+S.sleep,act,Math.min(+S.rec,24-S.sleep-act)]; you.push(Math.max(0,24-you[0]-you[1]-you[2]));
+  const aim=[R.sleepAim,(R.teen?60:Math.max(R.walkAimShow,30))/60,2]; aim.push(24-aim[0]-aim[1]-aim[2]);
+  const keys=[['d_sleep','sleep'],['d_act','active'],['d_scr','screen'],['d_rest','rest']];
+  const strip=a=>a.map((h,i)=>`<i class="${keys[i][1]==='rest'?'rest':''}" style="flex-basis:${h/24*100}%;background:var(--${keys[i][1]})" title="${t(keys[i][0])}: ${fmtH(h)}">${h/24>=0.07?fmtH(Math.round(h*2)/2):''}</i>`).join('');
+  $('secDay').innerHTML=`<h2>${t('d_title')}</h2><p class="cap">${t('d_cap')}</p>
+    <div class="row"><span>${t('d_you')}</span><div class="strip">${strip(you)}</div></div>
+    <div class="row"><span>${t('d_aim')}</span><div class="strip">${strip(aim)}</div></div>
+    <div class="leg">${keys.map((k,i)=>`<span><span class="sw" style="background:var(--${k[1]})"></span>${t(k[0])} <span class="num">${fmtH(Math.round(you[i]*4)/4)}</span></span>`).join('')}</div>`;
+  // targets
+  const meter=(v,max,s)=>`<div class="meter"><i style="width:${clamp(v/max,0,1)*100}%;background:var(--${s==='good'?'active':s==='close'?'over':'obese'})"></i></div>`;
+  const fq=v=>t(v===1?'freq':v===2?'some':'rare');
+  const cards=[
+    {h:t('t_sleep'),c:'sleep',s:R.st.sleep,aim:t('t_bed',{t:fmtClock(R.bedMin)}),you:t('t_sleep_you',{h:fmtH(+S.sleep),a:N(R.sleepLo)+'–'+N(R.sleepHi)+(LANG==='bn'?' ঘণ্টা':' h')}),m:meter(S.sleep,R.sleepHi,R.st.sleep),tip:S.sleep>R.sleepHi?t('t_sleep_long',{h:fmtH(R.sleepHi)}):t('t_sleep_tip')},
+    {h:t('t_move'),c:'active',s:R.st.move,aim:R.teen?t('t_move_teen'):t('t_move_aim',{m:N(R.walkAimShow)}),you:t('t_move_you',{w:N(Math.round(R.actWeek)),a:R.teen?N(420):N('150–300')}),m:meter(R.actWeek,R.teen?420:300,R.st.move),tip:t('t_move_tip')},
+    {h:t('t_scr'),c:'screen',s:R.st.screen,aim:t('t_scr_aim'),you:t('t_scr_you',{h:fmtH(+S.rec),t:fmtH(+S.scr)}),m:meter(Math.max(0,6-S.rec),6,R.st.screen),tip:t('t_scr_tip')},
+    {h:t('t_food'),c:'over',s:R.st.food,aim:t('t_food_aim'),you:t('t_food_you',{v:N(S.veg),h:fq(S.hc)}),m:meter(S.veg,5,R.st.food),tip:t('t_food_tip')},
+    {h:t('t_water'),c:'under',s:R.st.water,aim:t('t_water_aim',{g:N(R.waterAim)}),you:t('t_water_you',{n:N(S.water)}),m:meter(S.water,R.waterAim,R.st.water),tip:t('t_water_tip')},
+    {h:t('t_meal'),c:'sleep',s:R.st.late,aim:t('t_meal_aim',{t:fmtClock(R.lastMeal)}),you:t('t_meal_you',{f:fq(S.late)}),m:'',tip:t('t_meal_tip')},
+  ];
+  if(S.emo>=3) cards.push({h:t('t_emo'),c:'rest',s:R.st.emo,aim:t('t_emo_aim'),you:t('t_emo_you',{f:t('e'+S.emo)}),m:'',tip:t('t_emo_tip')});
+  if(S.stress>=4) cards.push({h:t('t_stress'),c:'rest',s:S.stress===5?'needs':'close',aim:t('t_stress_aim'),you:t('t_stress_you',{f:t('st'+S.stress)}),m:'',tip:t('t_stress_tip')});
+  if(S.smoke===1) cards.push({h:t('t_smoke'),c:'rest',s:'needs',aim:t('t_smoke_aim'),you:t('t_smoke_you'),m:'',tip:t('t_smoke_tip')});
+  $('secT').innerHTML=`<h2>${t('t_title')}</h2><p class="cap">${t('t_cap')}</p><div class="tgrid">${cards.map(c=>`<div class="tc"><div class="hd"><h3><span class="sw" style="background:var(--${c.c})"></span>${c.h}</h3>${statusPill(c.s)}</div><div class="aim">${c.aim}</div><div class="you">${c.you}</div>${c.m}<div class="tip">${c.tip}</div></div>`).join('')}</div>`;
+  // priorities
+  const mx=Math.max(1,...R.levers.map(l=>l.d));
+  $('secP').innerHTML=`<h2>${t('p_title')}</h2><p class="cap">${t('p_cap')}</p>${(R.age<18||R.age>35)?`<p class="cap">${t('p_teen')}</p>`:''}<div class="pri">${R.levers.map((l,i)=>l.can?
+    `<div class="it"><span class="n">${N(i+1)}</span><div><div>${t(l.k)}</div><div class="b"><i style="width:${l.d/mx*100}%"></i></div></div><span class="num" style="text-align:right;font-size:13px">${t('p_pts',{p:N(l.d.toFixed(1))})}</span></div>` :
+    `<div class="it none"><span class="n">–</span><div>${t(l.k)}</div><span style="text-align:right;font-size:12.5px">${t('p_none')}</span></div>`).join('')}</div>`;
+  // plan
+  const P=$('secPlan');
+  if(!R.cand.length){P.innerHTML=`<h2>${t('pl_title')}</h2><p class="cap">${t('pl_ok')}</p>`;}
+  else{ let done=0,total=0;
+    const vars={w:fmtClock(R.wakeMin),b:fmtClock(R.bedMin),m:N(R.walkAimShow),g:N(R.waterAim),t:fmtClock(R.lastMeal)};
+    const blocks=R.cand.map(c=>{const steps=PLANS[c.k][LANG];return `<div class="pl"><h3>${PLAN_NAME[LANG][c.k]}</h3><div class="wk">${steps.map((s,i)=>{const id=c.k+'-'+i;total++;if(DONE[id])done++;
+      let txt=s;for(const [a,b] of Object.entries(vars))txt=txt.split('{'+a+'}').join(b);
+      return `<label><span class="w">${t('pl_wk',{n:N(i+1)})}<input type="checkbox" data-done="${id}" ${DONE[id]?'checked':''}></span>${txt}</label>`;}).join('')}</div></div>`;}).join('');
+    P.innerHTML=`<h2>${t('pl_title')}</h2><p class="cap">${t('pl_cap')}</p><div class="plan">${blocks}</div><p class="prog" style="margin-top:10px">${t('pl_done',{n:N(done),m:N(total)})}</p>`;}
+  // notes
+  $('secN').innerHTML=`<h2 style="font-size:16px">${t('n_title')}</h2><ul><li>${t('n1')}</li><li>${t('n2')}</li><li>${t('n3')}</li><li>${t('n4')}</li></ul>`;
+}
+$('secPlan').addEventListener('change',e=>{const id=e.target.dataset.done;if(!id)return;DONE[id]=e.target.checked;render();});
+
+/* ---------- language ---------- */
+function applyLang(){
+  document.documentElement.lang=LANG;
+  document.querySelectorAll('[data-t]').forEach(el=>el.textContent=t(el.dataset.t));
+  document.querySelectorAll('.lang button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.lang===LANG)));
+  $('sources').innerHTML=`<b>${t('src_t')}</b><ol>
+   <li>World Health Organization (2020). Guidelines on physical activity and sedentary behaviour.</li>
+   <li>Watson N.F. et al. (2015). Recommended amount of sleep for a healthy adult. AASM and Sleep Research Society consensus. Hirshkowitz M. et al. (2015). National Sleep Foundation's sleep time duration recommendations.</li>
+   <li>WHO Expert Consultation (2004). Appropriate body-mass index for Asian populations. The Lancet 363:157–163. Waist cut-offs: International Diabetes Federation (South Asian).</li>
+   <li>WHO (2020). Healthy diet fact sheet: at least 400 g of fruit and vegetables a day. EFSA (2010). Dietary reference values for water.</li>
+   <li>Jannat A., Islam M.M. et al. Determinants of obesity among university students in Bangladesh: an economics and behavioral lifestyle perspective (ordered logit, N = 912; under review).</li></ol>`;
+  syncForm(); render();
+}
+document.querySelector('.lang').addEventListener('click',e=>{const b=e.target.closest('[data-lang]');if(!b)return;LANG=b.dataset.lang;applyLang();});
+applyLang();
+</script>
